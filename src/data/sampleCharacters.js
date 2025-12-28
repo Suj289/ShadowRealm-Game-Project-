@@ -1,0 +1,53 @@
+export const premadeCharacters = [
+  {
+    id: 1,
+    name: "Aldric",
+    class: "Warrior",
+    level: 1,
+    experience: 0,
+    health: 100,
+    max_health: 100,
+    mana: 50,
+    max_mana: 50,
+    strength: 12,
+    intelligence: 6,
+    agility: 8,
+    gold: 0,
+    owned: false,
+    price: 150
+  },
+  {
+    id: 2,
+    name: "Mystara",
+    class: "Mage",
+    level: 1,
+    experience: 0,
+    health: 80,
+    max_health: 80,
+    mana: 120,
+    max_mana: 120,
+    strength: 5,
+    intelligence: 14,
+    agility: 7,
+    gold: 0,
+    owned: false,
+    price: 180
+  },
+  {
+    id: 3,
+    name: "Shadow",
+    class: "Rogue",
+    level: 1,
+    experience: 0,
+    health: 90,
+    max_health: 90,
+    mana: 60,
+    max_mana: 60,
+    strength: 9,
+    intelligence: 7,
+    agility: 13,
+    gold: 0,
+    owned: false,
+    price: 170
+  }
+];
