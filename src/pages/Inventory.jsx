@@ -1,49 +1,51 @@
-import useInventory from "../hooks/useInventory";
+import { useState, useEffect } from "react";
 
-const rarityColors = {
-  Common: "text-gray-400",
-  Uncommon: "text-green-400",
-  Rare: "text-blue-400",
-  Epic: "text-purple-400",
-  Legendary: "text-orange-400"
-};
+const SHOP_ITEMS = [
+  { id: "hp", name: "Health Potion", price: 30, desc: "Restore 30 HP" },
+  { id: "dmg", name: "Damage Potion", price: 50, desc: "+20% Damage for next battle" },
+  { id: "res", name: "Resistance Potion", price: 40, desc: "Take 20% less damage" },
+];
 
 export default function Inventory() {
-  const { items, filter, setFilter, toggleEquip, deleteItem } = useInventory();
+  const [gold, setGold] = useState(() => Number(localStorage.getItem("gold") || 0));
+  const [items, setItems] = useState(() => JSON.parse(localStorage.getItem("items") || "{}"));
 
-  const visible = filter === "All" ? items : items.filter(i => i.type === filter);
+  useEffect(() => {
+    localStorage.setItem("gold", gold);
+    localStorage.setItem("items", JSON.stringify(items));
+  }, [gold, items]);
+
+  function buy(item) {
+    if (gold < item.price) return;
+
+    setGold(g => g - item.price);
+    setItems(inv => ({
+      ...inv,
+      [item.id]: (inv[item.id] || 0) + 1,
+    }));
+  }
 
   return (
-    <div>
-      <h2 className="text-4xl text-purple-300 mb-6">Inventory</h2>
+    <div className="page inventory-page">
+      <h2>Inventory Shop</h2>
+      <p>Gold: 🪙 {gold}</p>
 
-      <div className="mb-6 space-x-3">
-        {["All","Weapon","Armor","Potion","Artifact","Material"].map(t => (
-          <button key={t} onClick={() => setFilter(t)}
-            className="bg-purple-700/40 px-4 py-2 rounded-lg">
-            {t}
-          </button>
-        ))}
-      </div>
+      <div className="inventory-grid">
+        {SHOP_ITEMS.map(item => (
+          <div key={item.id} className="inventory-card">
+            <h3>{item.name}</h3>
+            <p>{item.desc}</p>
+            <p>Price: 🪙 {item.price}</p>
 
-      <div className="bg-black/50 p-5 rounded-2xl border border-purple-500/40 glow-border hover:scale-105 transition">
-        {visible.map(item => (
-          <div key={item.id} className="bg-black/40 p-5 rounded-xl border border-purple-500/40 space-y-2">
-            <h3 className={`text-xl ${rarityColors[item.rarity]}`}>{item.name}</h3>
-            <p>{item.type} • Power {item.power}</p>
-            <p>Value: {item.price} gold</p>
+            <button
+              onClick={() => buy(item)}
+              disabled={gold < item.price}
+              className={gold < item.price ? "disabled" : ""}
+            >
+              {gold < item.price ? "Not Enough Gold" : "Buy"}
+            </button>
 
-            <div className="flex gap-3">
-              <button onClick={() => toggleEquip(item.id)}
-                className="bg-indigo-600 px-4 py-1 rounded">
-                {item.equipped ? "Unequip" : "Equip"}
-              </button>
-
-              <button onClick={() => deleteItem(item.id)}
-                className="bg-red-600 px-4 py-1 rounded">
-                Delete
-              </button>
-            </div>
+            <p>Owned: {items[item.id] || 0}</p>
           </div>
         ))}
       </div>

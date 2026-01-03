@@ -1,38 +1,109 @@
-import useQuests from "../hooks/useQuests";
+import { useEffect, useState } from "react";
+
+const QUESTS = [
+  {
+    id: 1,
+    title: "Slay 5 Slimes 🟢",
+    desc: "Clear the forest of slimes",
+    target: 5,
+    reward: 50,
+    difficulty: "Easy",
+    monster: "slime",
+  },
+  {
+    id: 2,
+    title: "Slay 3 Goblins 👺",
+    desc: "Defeat goblin scouts",
+    target: 3,
+    reward: 75,
+    difficulty: "Medium",
+    monster: "goblin",
+  },
+  {
+    id: 3,
+    title: "Slay 1 Wolf 🐺",
+    desc: "Hunt the alpha wolf",
+    target: 1,
+    reward: 100,
+    difficulty: "Hard",
+    monster: "wolf",
+  },
+];
 
 export default function Quests() {
-  const { quests, acceptQuest, completeQuest } = useQuests();
+  const [gold, setGold] = useState(() => Number(localStorage.getItem("gold")) || 0);
+  const [progress, setProgress] = useState(() =>
+    JSON.parse(localStorage.getItem("questProgress")) || { 1: 0, 2: 0, 3: 0 }
+  );
+
+  useEffect(() => {
+    localStorage.setItem("gold", gold);
+    localStorage.setItem("questProgress", JSON.stringify(progress));
+  }, [gold, progress]);
+
+  function simulateKill(quest) {
+    setProgress(p => ({
+      ...p,
+      [quest.id]: Math.min(p[quest.id] + 1, quest.target),
+    }));
+  }
+
+  function claimReward(quest) {
+    if (progress[quest.id] < quest.target) return;
+
+    setGold(g => g + quest.reward);
+    setProgress(p => ({ ...p, [quest.id]: 0 }));
+  }
 
   return (
-    <div>
-      <h2 className="text-4xl text-purple-300 mb-6">Quests</h2>
+    <div className="page quests-page">
+      <h1 className="quest-title">Quest Board</h1>
+      <p className="quest-sub">Embark on epic adventures</p>
 
-      {["available", "in_progress", "completed"].map(status => (
-        <div key={status} className="mb-8">
-          <h3 className="text-2xl capitalize mb-3">{status.replace("_", " ")}</h3>
+      <div className="quest-grid">
+        {QUESTS.map(q => {
+          const current = progress[q.id];
+          const done = current >= q.target;
+          const percent = Math.floor((current / q.target) * 100);
 
-          <div className="space-y-4">
-            {quests.filter(q => q.status === status).map(q => (
-              <div key={q.id} className="bg-black/40 p-5 rounded-lg border border-purple-500/30">
-                <h4 className="text-xl text-purple-200">{q.title}</h4>
-                <p>{q.description}</p>
-                <p className="text-sm">Difficulty: {q.difficulty}</p>
-                <p className="text-yellow-400">Rewards: {q.reward_gold} gold / {q.reward_experience} XP</p>
-
-                {status === "available" && (
-                  <button onClick={() => acceptQuest(q.id)}
-                    className="mt-3 bg-purple-600 px-4 py-2 rounded-lg">Accept</button>
-                )}
-
-                {status === "in_progress" && (
-                  <button onClick={() => completeQuest(q.id)}
-                    className="mt-3 bg-green-600 px-4 py-2 rounded-lg">Complete</button>
-                )}
+          return (
+            <div className="quest-card" key={q.id}>
+              <div className={`badge ${q.difficulty.toLowerCase()}`}>
+                {q.difficulty}
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+
+              <h2>{q.title}</h2>
+              <p className="desc">{q.desc}</p>
+
+              <p className="reward">🪙 {q.reward} Gold</p>
+
+              <p className="progress">
+                Progress: {percent}% ({current} / {q.target})
+              </p>
+
+              <div className="quest-actions">
+                <button
+                  className="quest-btn simulate"
+                  onClick={() => simulateKill(q)}
+                  disabled={done}
+                >
+                  Simulate Kill
+                </button>
+
+                <button
+                  className={`quest-btn ${done ? "ready" : ""}`}
+                  onClick={() => claimReward(q)}
+                  disabled={!done}
+                >
+                  {done ? "Claim Reward" : "Incomplete"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="gold-display">🪙 {gold}</div>
     </div>
   );
 }

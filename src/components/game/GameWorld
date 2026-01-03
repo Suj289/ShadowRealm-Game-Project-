@@ -9,23 +9,23 @@ export default function StartScreen({ onStart }) {
         <motion.div
           key={i}
           className="absolute w-2 h-2 bg-purple-500/30 rounded-full"
-          initial={{ 
-            x: Math.random() * window.innerWidth, 
+          initial={{
+            x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
             scale: Math.random() * 0.5 + 0.5
           }}
-          animate={{ 
+          animate={{
             y: [null, Math.random() * -200 - 100],
             opacity: [0.3, 0]
           }}
-          transition={{ 
+          transition={{
             duration: Math.random() * 3 + 2,
             repeat: Infinity,
             repeatType: 'loop'
           }}
         />
       ))}
-      
+
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -42,7 +42,7 @@ export default function StartScreen({ onStart }) {
           SHADOWS
         </h1>
       </motion.div>
-      
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -57,7 +57,7 @@ export default function StartScreen({ onStart }) {
         >
           START GAME
         </motion.button>
-        
+
         <div className="mt-8 text-gray-500 space-y-2">
           <p className="text-lg">🎮 Controls</p>
           <p><span className="text-purple-400 font-mono">WASD</span> - Move</p>
@@ -65,7 +65,7 @@ export default function StartScreen({ onStart }) {
           <p><span className="text-purple-400 font-mono">Arrow Keys</span> - Dodge in battle</p>
         </div>
       </motion.div>
-      
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

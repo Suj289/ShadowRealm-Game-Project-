@@ -1,0 +1,286 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import GameWorld from '@/components/game/GameWorld';
+import BattleSystem from '@/components/game/BattleSystem';
+import GameUI from '@/components/game/GameUI';
+import StartScreen from '@/components/game/StartScreen';
+
+const LOCATIONS = [
+  { id: 0, name: 'Mystic Forest', color: '#2d5a27', unlocked: true, keysRequired: 0, enemies: ['Slime', 'Goblin', 'Wolf'] },
+  { id: 1, name: 'Dark Cave', color: '#1a1a3e', unlocked: false, keysRequired: 1, enemies: ['Bat', 'Spider', 'Golem'] },
+  { id: 2, name: 'Haunted Village', color: '#3d2a4d', unlocked: false, keysRequired: 2, enemies: ['Ghost', 'Skeleton', 'Witch'] },
+  { id: 3, name: 'Crystal Caverns', color: '#1a3a4a', unlocked: false, keysRequired: 3, enemies: ['Crystal Golem', 'Ice Sprite', 'Diamond Guard'] },
+  { id: 4, name: 'Shadow Castle', color: '#2a1a1a', unlocked: false, keysRequired: 4, enemies: ['Dark Knight', 'Shadow Mage', 'Dragon'] },
+];
+
+const ENEMY_DATA = {
+  'Slime': { hp: 20, atk: 3, patterns: ['bounce'], sprite: '🟢' },
+  'Goblin': { hp: 30, atk: 5, patterns: ['slash'], sprite: '👺' },
+  'Wolf': { hp: 35, atk: 7, patterns: ['charge'], sprite: '🐺' },
+  'Bat': { hp: 25, atk: 4, patterns: ['swoop'], sprite: '🦇' },
+  'Spider': { hp: 40, atk: 6, patterns: ['web'], sprite: '🕷️' },
+  'Golem': { hp: 60, atk: 8, patterns: ['smash'], sprite: '🗿' },
+  'Ghost': { hp: 35, atk: 7, patterns: ['phase'], sprite: '👻' },
+  'Skeleton': { hp: 45, atk: 9, patterns: ['bone'], sprite: '💀' },
+  'Witch': { hp: 40, atk: 11, patterns: ['magic'], sprite: '🧙' },
+  'Crystal Golem': { hp: 70, atk: 10, patterns: ['crystal'], sprite: '💎' },
+  'Ice Sprite': { hp: 30, atk: 12, patterns: ['freeze'], sprite: '❄️' },
+  'Diamond Guard': { hp: 80, atk: 14, patterns: ['reflect'], sprite: '🛡️' },
+  'Dark Knight': { hp: 90, atk: 15, patterns: ['sword'], sprite: '⚔️' },
+  'Shadow Mage': { hp: 60, atk: 18, patterns: ['dark'], sprite: '🌑' },
+  'Dragon': { hp: 150, atk: 20, patterns: ['fire', 'charge'], sprite: '🐉' },
+};
+
+export default function Game() {
+  const [gameState, setGameState] = useState('start'); // start, exploring, battle, victory, gameover
+  const [playerPos, setPlayerPos] = useState({ x: 200, y: 200 });
+  const [playerStats, setPlayerStats] = useState({ hp: 100, maxHp: 100, atk: 10, keys: 0 });
+  const [currentLocation, setCurrentLocation] = useState(0);
+  const [locations, setLocations] = useState(LOCATIONS);
+  const [currentEnemy, setCurrentEnemy] = useState(null);
+  const [enemies, setEnemies] = useState([]);
+  const [doors, setDoors] = useState([]);
+  const [message, setMessage] = useState('');
+  const [inventory, setInventory] = useState([
+    { name: 'Healing Potion', type: 'heal', value: 30, count: 3 }
+  ]);
+
+  const generateLocationContent = useCallback((locationId) => {
+    const location = locations[locationId];
+    const newEnemies = [];
+    const enemyCount = 3 + locationId;
+    const damageMultiplier = 1 + (locationId * 0.3); // 30% more damage per location
+
+    for (let i = 0; i < enemyCount; i++) {
+      const enemyType = location.enemies[Math.floor(Math.random() * location.enemies.length)];
+      newEnemies.push({
+        id: i,
+        type: enemyType,
+        x: 100 + Math.random() * 1000,
+        y: 100 + Math.random() * 600,
+        ...ENEMY_DATA[enemyType],
+        atk: Math.min(15, Math.floor(ENEMY_DATA[enemyType].atk * damageMultiplier))
+      });
+    }
+
+    const newDoors = [];
+    if (locationId < locations.length - 1) {
+      newDoors.push({
+        id: 'next',
+        targetLocation: locationId + 1,
+        x: 600,
+        y: 80,
+        keysRequired: locations[locationId + 1].keysRequired
+      });
+    }
+    if (locationId > 0) {
+      newDoors.push({
+        id: 'prev',
+        targetLocation: locationId - 1,
+        x: 600,
+        y: 80,
+        keysRequired: 0
+      });
+    }
+
+    setEnemies(newEnemies);
+    setDoors(newDoors);
+    setPlayerPos({ x: locationId > 0 ? 150 : 600, y: 400 });
+  }, [locations]);
+
+  useEffect(() => {
+    if (gameState === 'exploring') {
+      generateLocationContent(currentLocation);
+    }
+  }, [currentLocation, gameState, generateLocationContent]);
+
+  const startGame = () => {
+    setGameState('exploring');
+    setPlayerStats({ hp: 100, maxHp: 100, atk: 10, keys: 0 });
+    setCurrentLocation(0);
+    setLocations(LOCATIONS);
+    setInventory([{ name: 'Healing Potion', type: 'heal', value: 30, count: 3 }]);
+  };
+
+  const handleInteraction = useCallback(() => {
+    // Check for enemy interaction
+    for (const enemy of enemies) {
+      const dx = Math.abs(playerPos.x - enemy.x);
+      const dy = Math.abs(playerPos.y - enemy.y);
+      if (dx < 50 && dy < 50) {
+        setCurrentEnemy(enemy);
+        setGameState('battle');
+        return;
+      }
+    }
+
+    // Check for door interaction
+    for (const door of doors) {
+      const dx = Math.abs(playerPos.x - door.x);
+      const dy = Math.abs(playerPos.y - door.y);
+      if (dx < 50 && dy < 50) {
+        if (playerStats.keys >= door.keysRequired || locations[door.targetLocation].unlocked) {
+          if (!locations[door.targetLocation].unlocked) {
+            setPlayerStats(prev => ({ ...prev, keys: prev.keys - door.keysRequired }));
+            setLocations(prev => prev.map((loc, i) =>
+              i === door.targetLocation ? { ...loc, unlocked: true } : loc
+            ));
+          }
+          setCurrentLocation(door.targetLocation);
+          setMessage(`Entered ${locations[door.targetLocation].name}!`);
+          setTimeout(() => setMessage(''), 2000);
+        } else {
+          setMessage(`Need ${door.keysRequired} keys! You have ${playerStats.keys}`);
+          setTimeout(() => setMessage(''), 2000);
+        }
+        return;
+      }
+    }
+  }, [enemies, doors, playerPos, playerStats.keys, locations]);
+
+  const handleBattleEnd = (result) => {
+    if (result === 'win') {
+      // 25% chance to drop key
+      const droppedKey = Math.random() < 0.25;
+      if (droppedKey) {
+        setPlayerStats(prev => ({ ...prev, keys: prev.keys + 1 }));
+        setMessage('Victory! You got a KEY! 🗝️');
+      } else {
+        setMessage('Victory!');
+      }
+      setEnemies(prev => prev.filter(e => e.id !== currentEnemy.id));
+
+      // Check if all enemies defeated in final area
+      if (currentLocation === 4 && enemies.length === 1) {
+        setGameState('victory');
+        return;
+      }
+    } else if (result === 'flee') {
+      setMessage('Escaped!');
+    } else if (result === 'spare') {
+      setMessage('You spared the enemy. It left peacefully.');
+      setEnemies(prev => prev.filter(e => e.id !== currentEnemy.id));
+    }
+
+    setCurrentEnemy(null);
+    setGameState('exploring');
+    setTimeout(() => setMessage(''), 2000);
+  };
+
+  const handlePlayerDamage = (damage) => {
+    setPlayerStats(prev => {
+      const newHp = prev.hp - damage;
+      if (newHp <= 0) {
+        setGameState('gameover');
+        return { ...prev, hp: 0 };
+      }
+      return { ...prev, hp: newHp };
+    });
+  };
+
+  const handleUseItem = (item) => {
+    if (item.type === 'heal') {
+      setPlayerStats(prev => ({
+        ...prev,
+        hp: Math.min(prev.maxHp, prev.hp + item.value)
+      }));
+      setInventory(prev => prev.map(i =>
+        i.name === item.name ? { ...i, count: i.count - 1 } : i
+      ).filter(i => i.count > 0));
+    }
+  };
+
+  if (gameState === 'start') {
+    return <StartScreen onStart={startGame} />;
+  }
+
+  if (gameState === 'victory') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-yellow-900 to-yellow-600 flex items-center justify-center">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="text-center p-8 bg-black/50 rounded-2xl"
+        >
+          <h1 className="text-6xl font-bold text-yellow-400 mb-4">🏆 VICTORY! 🏆</h1>
+          <p className="text-2xl text-white mb-8">You conquered the Shadow Castle!</p>
+          <button
+            onClick={startGame}
+            className="px-8 py-4 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400 transition-all"
+          >
+            Play Again
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (gameState === 'gameover') {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-red-900 to-black flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center p-8"
+        >
+          <h1 className="text-6xl font-bold text-red-500 mb-4">You Lost 💔</h1>
+          <p className="text-xl text-gray-400 mb-8">Your journey ends here...</p>
+          <button
+            onClick={startGame}
+            className="px-8 py-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-500 transition-all"
+          >
+            Try Again
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a0a15] overflow-hidden">
+      <AnimatePresence mode="wait">
+        {gameState === 'exploring' && (
+          <motion.div
+            key="exploring"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <GameUI
+              playerStats={playerStats}
+              currentLocation={locations[currentLocation]}
+              message={message}
+            />
+            <GameWorld
+              playerPos={playerPos}
+              setPlayerPos={setPlayerPos}
+              enemies={enemies}
+              doors={doors}
+              location={locations[currentLocation]}
+              onInteract={handleInteraction}
+              playerKeys={playerStats.keys}
+            />
+          </motion.div>
+        )}
+
+        {gameState === 'battle' && currentEnemy && (
+          <motion.div
+            key="battle"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <BattleSystem
+              enemy={currentEnemy}
+              playerStats={playerStats}
+              onBattleEnd={handleBattleEnd}
+              onPlayerDamage={handlePlayerDamage}
+              inventory={inventory}
+              onUseItem={handleUseItem}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

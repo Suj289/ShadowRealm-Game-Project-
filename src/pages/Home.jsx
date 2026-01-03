@@ -1,22 +1,29 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const navigate = useNavigate();
+
   return (
-    <div className="text-center space-y-10">
-      <h2 className="text-5xl font-extrabold text-purple-300 drop-shadow-lg">
-        Realm of Shadows
-      </h2>
+    <div style={{ height: "100vh", display: "grid", placeItems: "center" }}>
+      <div className="portal" style={{ textAlign: "center" }}>
 
-      <p className="text-gray-300 max-w-xl mx-auto">
-        A dark fantasy RPG where heroes rise, gold flows, and legends are forged.
-      </p>
+        <h1>Realm of Shadows</h1>
+        <p>A dark fantasy RPG where legends are forged and fate is decided.</p>
 
-      <Link
-        to="/characters"
-        className="inline-block px-8 py-4 bg-purple-600 rounded-xl shadow-lg hover:scale-105 transition"
-      >
-        ENTER THE REALM
-      </Link>
+        <button className="game-btn" onClick={() => navigate("/characters")}>
+          ENTER THE REALM
+        </button>
+
+        <div className="home-buttons">
+          <button className="game-btn" onClick={() => navigate("/characters")}>
+            My Characters
+          </button>
+          <button className="game-btn" onClick={() => navigate("/quests")}>
+            Quests
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
